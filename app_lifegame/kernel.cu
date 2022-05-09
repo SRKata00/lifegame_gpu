@@ -7,9 +7,6 @@
 #include <fstream>
 #include <curand.h>
 
-#define N 10
-#define M 10
-
 void writeToConsole(const int n, const int m, int* cells)
 {
 	std::cout << std::endl <<"******";
@@ -48,38 +45,6 @@ void readtestfile(std::ifstream& in, int* cells)
 	
 }
 
-void setOneCellMatrix(const int cells[N][M], int cells2[N][M], int x, int y)
-{
-	/*int x = blockDim.x * blockIdx.x + threadIdx.x;
-	int y = blockDim.y * blockIdx.y + threadIdx.y;*/
-	int startx, starty, endx, endy;
-	startx = (x - 1 < 0) ? 0 : (x - 1);
-	starty = (y - 1 < 0) ? 0 : (y - 1);
-	endx = (x + 1 >= N) ? N : (x + 1);
-	endy = (y + 1 >= M) ? M : (y + 1);
-	if (cells[x][y] != 2)
-	{
-		int count = 0;
-		for (size_t i = startx; i <= endx; i++)
-		{
-			for (size_t j = starty; j <= endy; j++)
-			{
-				if (cells[i][j] == 1)
-				{
-					count++;
-				}
-			}
-		}
-		if (((cells[x][y] == 1) && (count == 4)) || ((cells[x][y] != 2) && (count == 3)))
-		{
-			cells2[x][y] = 1;
-		}
-		else
-		{
-			cells2[x][y] = 0;
-		}
-	}
-}
 void setOneCellArray(int* cells0, int pos,const int n,const int m, int* cells_next)
 {
 	if (cells0[pos] != 2)
@@ -121,7 +86,7 @@ void setOneCellArray(int* cells0, int pos,const int n,const int m, int* cells_ne
 
 void runCPU(int nrOfGeneration)
 {
-	char infile[100] = "testfiles\\C7x5oGlider_2.txt";
+	char infile[100] = "testfiles\\G35x30o.txt";
 	std::ifstream in(infile);
 	int n, m;
 	in >> m;
@@ -226,7 +191,7 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 void runGPU(int nrOfGeneration)
 {
 	int n, m;
-	char infile[100] = "testfiles\\C7x5oGlider_2.txt";
+	char infile[100] = "testfiles\\G35x30o.txt";
 	std::ifstream in(infile);
 	in >> m;
 	in >> n;
@@ -262,9 +227,9 @@ void runGPU(int nrOfGeneration)
 
 int main()
 {
-	runCPU(9);
+	runCPU(1);
 	std::cout<<"\nGPU\n";
-	runGPU(9);
+	runGPU(1);
 	
     return 0;
 }

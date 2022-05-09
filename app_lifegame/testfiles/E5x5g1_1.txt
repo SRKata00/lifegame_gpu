@@ -1,0 +1,6 @@
+5 5
+x x o x x
+x x o o o
+o o o o o
+o o o o o
+o o o o g

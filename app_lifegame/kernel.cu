@@ -117,16 +117,16 @@ void setOneCellArray(int* cells0, int pos,const int n,const int m, int* cells_ne
 __device__ int dev_n, dev_m;
 
 __global__
-void generateTestfile(int* cells)
+void dev_generateTestfile(int* cells)
 {
 	int pos = blockIdx.x*blockDim.y* blockDim.x +threadIdx.x * blockDim.y + threadIdx.y;
 	cells[pos] = pos;
 }
 
-__global__ void dev_setOneCell(int* dev_cells0)
+__global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 {
-	int* dev_cells_next;
-	cudaMalloc((void**)&dev_cells_next, (dev_n * dev_m) * sizeof(int));
+	/*__shared__ int* dev_cells_next;
+	cudaMalloc((void**)&dev_cells_next, (dev_n * dev_m) * sizeof(int));*/
 	int pos = blockIdx.x * blockDim.y * blockDim.x + threadIdx.x * blockDim.y + threadIdx.y;
 	if (dev_cells0[pos] != 2)
 	{
@@ -158,13 +158,14 @@ __global__ void dev_setOneCell(int* dev_cells0)
 			dev_cells_next[pos] = 0;
 		}
 	}
-	__syncthreads();
+	/*__syncthreads();
 	if (pos == 0)
 	{
 		int* temp = dev_cells0;
 		dev_cells0 = dev_cells_next;
 		dev_cells_next = temp;
 	}
+	cudaFree(dev_cells_next);*/
 }
 
 void runCPU(int nrOfGeneration)
@@ -210,7 +211,7 @@ int main()
 	cudaMemcpyToSymbol(dev_n, &n, sizeof(int));
 	std::cout<<n<<" "<<m<<std::endl;
 	int* cells00 = (int*)malloc((n * m) * sizeof(int));
-	readtestfile(in, n, m, cells00);
+	readtestfile(in, cells00);
 	in.close();
 	writeToConsole(n, m, cells00);
 
@@ -221,14 +222,20 @@ int main()
 	cudaMalloc((void**)&dev_cells0, (n * m) * sizeof(int));
 	cudaMemcpy(dev_cells0, cells00, (n * m) * sizeof(int), cudaMemcpyHostToDevice);
 
+	///try
+	int* dev_cells_next;
+	cudaMalloc((void**)&dev_cells_next, (n * m) * sizeof(int));
+
 	dim3 blocksize(blocksizex, blocksizey);
-	dev_setOneCell<<<blockCount, blocksize>>>(dev_cells0);
-	cudaMemcpy(cells00, dev_cells0, (n * m) * sizeof(int), cudaMemcpyDeviceToHost);
+	dev_setOneCell <<<blockCount, blocksize >>> (dev_cells0, dev_cells_next);
+	cudaMemcpy(cells00, dev_cells_next, (n * m) * sizeof(int), cudaMemcpyDeviceToHost);
 	writeToConsole(n,m,cells00);
+	//std::cout << cudaGetErrorString(err);
 	
 
 	free(cells00);
 	cudaFree(dev_cells0);
+	cudaFree(dev_cells_next);
     return 0;
 }
 

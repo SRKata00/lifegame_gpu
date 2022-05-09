@@ -167,32 +167,6 @@ __global__ void dev_setOneCell(int* dev_cells0)
 	}
 }
 
-
-void runFromTestFile()
-{
-	char infile[100] = "testfiles\\E5x5g1.txt";
-	int n, m;
-	std::ifstream in(infile);
-	in >> m;
-	in >> n;
-	cudaMemcpyToSymbol(dev_m, &m, sizeof(int));
-	cudaMemcpyToSymbol(dev_n, &n, sizeof(int));
-	std::cout << n << " " << m << std::endl;
-
-	int* cells00 = (int*)malloc(n * m * sizeof(int));
-	readtestfile(in, cells00);
-	writeToConsole(n, m, cells00);
-	in.close();
-
-	int* dev_cells0;
-	cudaMalloc((void**)&dev_cells0, n * m * sizeof(int));
-	cudaMemcpy(dev_cells0, cells00, n * m * sizeof(int), cudaMemcpyHostToDevice);
-
-
-	free(cells00);
-	cudaFree(dev_cells0);
- }
-
 void runCPU(int nrOfGeneration)
 {
 	char infile[100] = "testfiles\\C7x5oGlider.txt";
@@ -224,14 +198,16 @@ void runCPU(int nrOfGeneration)
 
 int main()
 {
-	runCPU(8);
-	/*int n = 500, m = 40;
-	//curandGenerator_t gen;
+	//runCPU(8);
+
+	int n, m;
 
 	char infile[100] = "testfiles\\A5x5oBlinker.txt";
 	std::ifstream in(infile);
 	in >> m;
 	in >> n;
+	cudaMemcpyToSymbol(dev_m, &m, sizeof(int));
+	cudaMemcpyToSymbol(dev_n, &n, sizeof(int));
 	std::cout<<n<<" "<<m<<std::endl;
 	int* cells00 = (int*)malloc((n * m) * sizeof(int));
 	readtestfile(in, n, m, cells00);
@@ -239,24 +215,20 @@ int main()
 	writeToConsole(n, m, cells00);
 
 	int blocksizex = 32, blocksizey = 30;
-	//int blockCountx = n / blocksizex + 1, blockCounty = m / blocksizey + 1;
 	int blockCount = (n * m) / (blocksizex * blocksizey) + 1;
-	*/
-	/*int* dev_cells0;
+	
+	int* dev_cells0;
 	cudaMalloc((void**)&dev_cells0, (n * m) * sizeof(int));
 	cudaMemcpy(dev_cells0, cells00, (n * m) * sizeof(int), cudaMemcpyHostToDevice);
 
-	//generateTestfile<<<dim3(blockCountx, blockCounty), dim3(blocksizex, blocksizey)>>>(dev_cells0);
 	dim3 blocksize(blocksizex, blocksizey);
 	dev_setOneCell<<<blockCount, blocksize>>>(dev_cells0);
-	//generateTestfile<<<blockCount, blocksize>>>(dev_cells0);
 	cudaMemcpy(cells00, dev_cells0, (n * m) * sizeof(int), cudaMemcpyDeviceToHost);
 	writeToConsole(n,m,cells00);
-	//curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
-	*/
+	
 
-	//free(cells00);
-	//cudaFree(dev_cells0);
+	free(cells00);
+	cudaFree(dev_cells0);
     return 0;
 }
 

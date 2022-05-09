@@ -12,7 +12,7 @@
 
 void writeToConsole(const int n, const int m, int* cells)
 {
-	std::cout <<"******"<< std::endl;
+	std::cout << std::endl <<"******";
 	int l = 0;
 	for (int i=0;i<n;i++)
 	{
@@ -80,9 +80,8 @@ void setOneCellMatrix(const int cells[N][M], int cells2[N][M], int x, int y)
 		}
 	}
 }
-void setOneCellArray(int* cells0, int pos,const int n,const int m)
+void setOneCellArray(int* cells0, int pos,const int n,const int m, int* cells_next)
 {
-	int* cells_next = (int*)malloc((n * m) * sizeof(int));
 	if (cells0[pos] != 2)
 	{
 		int count = 0;
@@ -113,9 +112,6 @@ void setOneCellArray(int* cells0, int pos,const int n,const int m)
 			cells_next[pos] = 0;
 		}
 	}
-	int* temp = cells_next;
-	cells_next = cells0;
-	cells0 = temp;
 }
 
 __device__ int dev_n, dev_m;
@@ -209,15 +205,20 @@ void runCPU(int nrOfGeneration)
 	readtestfile(in, cellsCPU0);
 	in.close();
 	writeToConsole(n, m, cellsCPU0);
+	int* cells_next = (int*)malloc((n * m) * sizeof(int));
 	while (nrOfGeneration > 0)
 	{
 		for (int i = 0; i < n * m; i++)
 		{
-			setOneCellArray(cellsCPU0, i, n, m);
+			setOneCellArray(cellsCPU0, i, n, m, cells_next);
 		}
-		writeToConsole(n, m, cellsCPU0);
 		nrOfGeneration--;
+		int* temp = cells_next;
+		cells_next = cellsCPU0;
+		cellsCPU0 = temp;
+		writeToConsole(n, m, cellsCPU0);
 	}
+	free(cells_next);
 	free(cellsCPU0);
 }
 

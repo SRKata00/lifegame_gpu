@@ -121,7 +121,7 @@ void setOneCellArray(int* cells0, int pos,const int n,const int m, int* cells_ne
 
 void runCPU(int nrOfGeneration)
 {
-	char infile[100] = "testfiles\\F3x3o.txt";
+	char infile[100] = "testfiles\\C7x5oGlider_2.txt";
 	std::ifstream in(infile);
 	int n, m;
 	in >> m;
@@ -164,24 +164,36 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 	int pos = blockIdx.x * blockDim.y * blockDim.x + threadIdx.x * blockDim.y + threadIdx.y;
 	while (dev_gen > 0)
 	{
-		if (dev_cells0[pos] != 2)
+		if ((pos<dev_n*dev_m)&&(dev_cells0[pos] != 2))
 		{
 			int count = 0;
 
 			//count
 			if (pos >= dev_m)
 			{
-				if ((pos - dev_m - 1) % dev_m != dev_m -1) { count += dev_cells0[pos - dev_m - 1]; }
+				if ((pos - dev_m - 1) % dev_m != dev_m - 1)
+				{
+					count += dev_cells0[pos - dev_m - 1];
+				}
 				count += dev_cells0[pos - dev_m];
-				if ((pos - dev_m + 1) % dev_m !=0) { count += dev_cells0[pos - dev_m + 1]; }
+				if ((pos - dev_m + 1) % dev_m != 0)
+				{
+					count += dev_cells0[pos - dev_m + 1];
+				}
 			}
 			if ((pos - 1) % dev_m != dev_m - 1) { count += dev_cells0[pos - 1]; }
 			if ((pos + 1) % dev_m != 0) { count += dev_cells0[pos + 1]; }
 			if (pos + dev_m < dev_m * dev_n)
 			{
-				if ((pos + dev_m - 1) % dev_m != dev_m - 1) { count += dev_cells0[pos + dev_m - 1]; }
+				if ((pos + dev_m - 1) % dev_m != dev_m - 1)
+				{
+					count += dev_cells0[pos + dev_m - 1];
+				}
 				count += dev_cells0[pos + dev_m];
-				if ((pos + dev_m + 1) % dev_m != 0) { count += dev_cells0[pos + dev_m + 1]; }
+				if ((pos + dev_m + 1) % dev_m != 0)
+				{
+					count += dev_cells0[pos + dev_m + 1];
+				}
 			}
 			//end count
 
@@ -195,9 +207,12 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 			}
 		}
 		__syncthreads();
-		int temp = dev_cells0[pos];
-		dev_cells0[pos] = dev_cells_next[pos];
-		dev_cells_next[pos] = temp;
+		if (pos<dev_n*dev_m)
+		{
+			int temp = dev_cells0[pos];
+			dev_cells0[pos] = dev_cells_next[pos];
+			dev_cells_next[pos] = temp;
+		}
 		__syncthreads();
 		if (pos == 0)
 		{
@@ -211,7 +226,7 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 void runGPU(int nrOfGeneration)
 {
 	int n, m;
-	char infile[100] = "testfiles\\F3x3o.txt";
+	char infile[100] = "testfiles\\C7x5oGlider_2.txt";
 	std::ifstream in(infile);
 	in >> m;
 	in >> n;
@@ -247,9 +262,9 @@ void runGPU(int nrOfGeneration)
 
 int main()
 {
-	runCPU(1);
+	runCPU(9);
 	std::cout<<"\nGPU\n";
-	runGPU(1);
+	runGPU(9);
 	
     return 0;
 }

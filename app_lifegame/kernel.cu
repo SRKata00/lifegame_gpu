@@ -123,46 +123,83 @@ void dev_generateTestfile(int* cells)
 		cells[pos] += pos;
 }
 
+__device__ int countNeighbours(int* dev_cells0, int pos)
+{
+	int count = 0;
+
+	if (pos >= dev_m)
+	{
+		if ((pos - dev_m - 1) % dev_m != dev_m - 1)
+		{
+			count += dev_cells0[pos - dev_m - 1];
+		}
+		count += dev_cells0[pos - dev_m];
+		if ((pos - dev_m + 1) % dev_m != 0)
+		{
+			count += dev_cells0[pos - dev_m + 1];
+		}
+	}
+	if ((pos - 1) % dev_m != dev_m - 1) { count += dev_cells0[pos - 1]; }
+	if ((pos + 1) % dev_m != 0) { count += dev_cells0[pos + 1]; }
+	if (pos + dev_m < dev_m * dev_n)
+	{
+		if ((pos + dev_m - 1) % dev_m != dev_m - 1)
+		{
+			count += dev_cells0[pos + dev_m - 1];
+		}
+		count += dev_cells0[pos + dev_m];
+		if ((pos + dev_m + 1) % dev_m != 0)
+		{
+			count += dev_cells0[pos + dev_m + 1];
+		}
+	}
+	return count;
+}
+
 __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 {
 	__shared__ int dev_gen;
 	dev_gen = dev_nrGeneration;
+
+	/*extern __shared__ char dev_array[];
+	int* dev_cells_next = (int*)dev_array;*/
+
 	int pos = blockIdx.x * blockDim.y * blockDim.x + threadIdx.x * blockDim.y + threadIdx.y;
 	__syncthreads();
 	while (dev_gen > 0)
 	{
 		if ((pos<dev_n*dev_m)&&(dev_cells0[pos] != 2))
 		{
-			int count = 0;
+			int count = countNeighbours(dev_cells0, pos);
 
-			//count
-			if (pos >= dev_m)
-			{
-				if ((pos - dev_m - 1) % dev_m != dev_m - 1)
-				{
-					count += dev_cells0[pos - dev_m - 1];
-				}
-				count += dev_cells0[pos - dev_m];
-				if ((pos - dev_m + 1) % dev_m != 0)
-				{
-					count += dev_cells0[pos - dev_m + 1];
-				}
-			}
-			if ((pos - 1) % dev_m != dev_m - 1) { count += dev_cells0[pos - 1]; }
-			if ((pos + 1) % dev_m != 0) { count += dev_cells0[pos + 1]; }
-			if (pos + dev_m < dev_m * dev_n)
-			{
-				if ((pos + dev_m - 1) % dev_m != dev_m - 1)
-				{
-					count += dev_cells0[pos + dev_m - 1];
-				}
-				count += dev_cells0[pos + dev_m];
-				if ((pos + dev_m + 1) % dev_m != 0)
-				{
-					count += dev_cells0[pos + dev_m + 1];
-				}
-			}
-			//end count
+		//	//count
+		//	if (pos >= dev_m)
+		//	{
+		//		if ((pos - dev_m - 1) % dev_m != dev_m - 1)
+		//		{
+		//			count += dev_cells0[pos - dev_m - 1];
+		//		}
+		//		count += dev_cells0[pos - dev_m];
+		//		if ((pos - dev_m + 1) % dev_m != 0)
+		//		{
+		//			count += dev_cells0[pos - dev_m + 1];
+		//		}
+		//	}
+		//	if ((pos - 1) % dev_m != dev_m - 1) { count += dev_cells0[pos - 1]; }
+		//	if ((pos + 1) % dev_m != 0) { count += dev_cells0[pos + 1]; }
+		//	if (pos + dev_m < dev_m * dev_n)
+		//	{
+		//		if ((pos + dev_m - 1) % dev_m != dev_m - 1)
+		//		{
+		//			count += dev_cells0[pos + dev_m - 1];
+		//		}
+		//		count += dev_cells0[pos + dev_m];
+		//		if ((pos + dev_m + 1) % dev_m != 0)
+		//		{
+		//			count += dev_cells0[pos + dev_m + 1];
+		//		}
+		//	}
+		//	//end count
 
 			if ((count == 3) || ((dev_cells0[pos] == 1) && (count == 2)))
 			{
@@ -191,12 +228,14 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 		}
 		__syncthreads();
 	}
+	//cudaFree(dev_cells_next);
 }
 
 void runGPU(int nrOfGeneration)
 {
 	int n, m;
-	char infile[100] = "testfiles\\J35x28o_teszt.txt";
+	//char infile[100] = "testfiles\\J35x28o_teszt.txt";
+	char infile[100] = "testfiles\\A5x5oBlinker.txt";
 	std::ifstream in(infile);
 	in >> m;
 	in >> n;
@@ -211,6 +250,7 @@ void runGPU(int nrOfGeneration)
 
 	int blocksizex = 32, blocksizey = 30;
 	int blockCount = (n * m) / (blocksizex * blocksizey) + 1;
+	int sh_memoSize = ((blocksizex * blocksizey) + 2 * m)* sizeof(double);
 
 	int* dev_cells0;
 	cudaMalloc((void**)&dev_cells0, (n * m) * sizeof(int));
@@ -220,10 +260,10 @@ void runGPU(int nrOfGeneration)
 	cudaMalloc((void**)&dev_cells_next, (n * m) * sizeof(int));
 
 	dim3 blocksize(blocksizex, blocksizey);
-	//dev_setOneCell << <blockCount, blocksize >> > (dev_cells0, dev_cells_next);
-	dev_setOneCell << <2, blocksize >> > (dev_cells0, dev_cells_next);
+	dev_setOneCell << <blockCount, blocksize >> > (dev_cells0, dev_cells_next);
+	//dev_setOneCell << <blockCount, blocksize, sh_memoSize >> > (dev_cells0);
 	cudaMemcpy(cells00, dev_cells0, (n * m) * sizeof(int), cudaMemcpyDeviceToHost);
-	cudaMemcpyFromSymbol(&nrOfGeneration, dev_nrGeneration, sizeof(int));
+	//cudaMemcpyFromSymbol(&nrOfGeneration, dev_nrGeneration, sizeof(int));
 	//std::cout<<std::endl<<"gen: " << nrOfGeneration;
 	writeToConsole(n, m, cells00);
 

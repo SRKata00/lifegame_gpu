@@ -86,7 +86,7 @@ void setOneCellArray(int* cells0, int pos,const int n,const int m, int* cells_ne
 
 void runCPU(int nrOfGeneration)
 {
-	char infile[100] = "testfiles\\G35x30o.txt";
+	char infile[100] = "testfiles\\I35x28o.txt";
 	std::ifstream in(infile);
 	int n, m;
 	in >> m;
@@ -118,8 +118,9 @@ __device__ int dev_n, dev_m, dev_nrGeneration;
 __global__
 void dev_generateTestfile(int* cells)
 {
-	int pos = blockIdx.x*blockDim.y* blockDim.x +threadIdx.x * blockDim.y + threadIdx.y;
-	cells[pos] = pos;
+	int pos = blockIdx.x*blockDim.y* blockDim.x + threadIdx.x * blockDim.y + threadIdx.y;
+	if (pos< dev_n*dev_m)
+		cells[pos] += pos;
 }
 
 __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
@@ -127,6 +128,7 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 	__shared__ int dev_gen;
 	dev_gen = dev_nrGeneration;
 	int pos = blockIdx.x * blockDim.y * blockDim.x + threadIdx.x * blockDim.y + threadIdx.y;
+	__syncthreads();
 	while (dev_gen > 0)
 	{
 		if ((pos<dev_n*dev_m)&&(dev_cells0[pos] != 2))
@@ -170,6 +172,10 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 			{
 				dev_cells_next[pos] = 0;
 			}
+			/*if (blockIdx.x == 1)
+			{
+				dev_cells_next[pos] = pos;
+			}*/
 		}
 		__syncthreads();
 		if (pos<dev_n*dev_m)
@@ -179,19 +185,18 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 			dev_cells_next[pos] = temp;
 		}
 		__syncthreads();
-		if (pos == 0)
+		if((threadIdx.x==0)&&(threadIdx.y==0))
 		{
 			dev_gen--;
 		}
 		__syncthreads();
 	}
-	
 }
 
 void runGPU(int nrOfGeneration)
 {
 	int n, m;
-	char infile[100] = "testfiles\\G35x30o.txt";
+	char infile[100] = "testfiles\\J35x28o_teszt.txt";
 	std::ifstream in(infile);
 	in >> m;
 	in >> n;
@@ -215,8 +220,11 @@ void runGPU(int nrOfGeneration)
 	cudaMalloc((void**)&dev_cells_next, (n * m) * sizeof(int));
 
 	dim3 blocksize(blocksizex, blocksizey);
-	dev_setOneCell <<<blockCount, blocksize>>> (dev_cells0, dev_cells_next);
+	//dev_setOneCell << <blockCount, blocksize >> > (dev_cells0, dev_cells_next);
+	dev_setOneCell << <2, blocksize >> > (dev_cells0, dev_cells_next);
 	cudaMemcpy(cells00, dev_cells0, (n * m) * sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpyFromSymbol(&nrOfGeneration, dev_nrGeneration, sizeof(int));
+	//std::cout<<std::endl<<"gen: " << nrOfGeneration;
 	writeToConsole(n, m, cells00);
 
 
@@ -227,10 +235,10 @@ void runGPU(int nrOfGeneration)
 
 int main()
 {
-	runCPU(1);
+	//runCPU(1);
 	std::cout<<"\nGPU\n";
 	runGPU(1);
-	
+
     return 0;
 }
 

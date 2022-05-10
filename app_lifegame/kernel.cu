@@ -172,35 +172,6 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 		{
 			int count = countNeighbours(dev_cells0, pos);
 
-		//	//count
-		//	if (pos >= dev_m)
-		//	{
-		//		if ((pos - dev_m - 1) % dev_m != dev_m - 1)
-		//		{
-		//			count += dev_cells0[pos - dev_m - 1];
-		//		}
-		//		count += dev_cells0[pos - dev_m];
-		//		if ((pos - dev_m + 1) % dev_m != 0)
-		//		{
-		//			count += dev_cells0[pos - dev_m + 1];
-		//		}
-		//	}
-		//	if ((pos - 1) % dev_m != dev_m - 1) { count += dev_cells0[pos - 1]; }
-		//	if ((pos + 1) % dev_m != 0) { count += dev_cells0[pos + 1]; }
-		//	if (pos + dev_m < dev_m * dev_n)
-		//	{
-		//		if ((pos + dev_m - 1) % dev_m != dev_m - 1)
-		//		{
-		//			count += dev_cells0[pos + dev_m - 1];
-		//		}
-		//		count += dev_cells0[pos + dev_m];
-		//		if ((pos + dev_m + 1) % dev_m != 0)
-		//		{
-		//			count += dev_cells0[pos + dev_m + 1];
-		//		}
-		//	}
-		//	//end count
-
 			if ((count == 3) || ((dev_cells0[pos] == 1) && (count == 2)))
 			{
 				dev_cells_next[pos] = 1;
@@ -234,8 +205,8 @@ __global__ void dev_setOneCell(int* dev_cells0, int* dev_cells_next)
 void runGPU(int nrOfGeneration)
 {
 	int n, m;
-	//char infile[100] = "testfiles\\J35x28o_teszt.txt";
-	char infile[100] = "testfiles\\A5x5oBlinker.txt";
+	char infile[100] = "testfiles\\J35x28o_teszt.txt";
+	//char infile[100] = "testfiles\\A5x5oBlinker.txt";
 	std::ifstream in(infile);
 	in >> m;
 	in >> n;
@@ -277,7 +248,7 @@ int main()
 {
 	//runCPU(1);
 	std::cout<<"\nGPU\n";
-	runGPU(1);
+	runGPU(2);
 
     return 0;
 }
